@@ -15,8 +15,6 @@ mv _xlib/include/X11/*.h X11
 mv _xlib/include/X11/extensions/*.h X11/extensions
 rm -rf _xlib
 
-# TODO: libxcb
-
 # xcursor
 mkdir -p X11/Xcursor
 # generate header file with version
@@ -98,3 +96,25 @@ mkdir GL
 done
 
 rm -rf _xorgproto
+
+# libxcb (this one's bad!)
+rm -rf xcb || true
+git clone https://gitlab.freedesktop.org/xorg/proto/xcbproto.git --depth 1 _xcbproto
+pushd _xcbproto
+./autogen.sh
+make
+make DESTDIR="$(pwd)/out" install
+curl 'https://gitlab.freedesktop.org/xorg/lib/libxcb/-/raw/master/src/c_client.py' -o c_client.py
+mkdir c_client_out
+pushd c_client_out
+export PYTHONPATH="../out/usr/local/lib/python3.10/site-packages"
+for file in ../src/*.xml; do
+    # The -c, -l and -s parameter are only used for man page
+    # generation and aren't relevant for headers.
+    python3 ../c_client.py -c _ -l _ -s _ "$file"
+done
+popd
+popd
+mkdir xcb
+mv _xcbproto/c_client_out/*.h xcb
+rm -rf _xcbproto
