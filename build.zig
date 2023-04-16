@@ -19,5 +19,5 @@ pub fn build(b: *std.Build) void {
     lib.installHeadersDirectory("xcb", "xcb");
     lib.installHeadersDirectory("xkbcommon", "xkbcommon");
 
-    lib.install();
+    b.installArtifact(lib);
 }
