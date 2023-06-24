@@ -17,12 +17,14 @@ This is a Zig package which provides various X11 headers needed to develop and c
 
 ## Updating
 
-To update this repository, we run the following:
-
-```sh
-./update-headers.sh
-```
+To update this repository, run `./update.sh` followed by `./verify.sh` to verify the repository contents.
 
 ## Verifying repository contents
 
-For supply chain security reasons (e.g. to confirm we made no patches to the code) you can verify the contents of this repository by comparing this repository contents with the result of `update-headers.sh`.
+For supply chain security reasons (e.g. to confirm we made no patches to the code) we provide a `git diff` command you can run to verify the contents of this repository:
+
+```sh
+./verify.sh
+```
+
+If nothing is printed, there is no diff. Deleted files, and changes to `README.md`, `build.zig`, `.github` CI files and `.gitignore` are ignored.

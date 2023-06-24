@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -ex
+set -euo pipefail
+set -x
 
 # xkbcommon
 rm -rf xkbcommon || true
