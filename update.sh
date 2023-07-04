@@ -16,15 +16,22 @@ mv _xlib/include/X11/*.h X11
 mv _xlib/include/X11/extensions/*.h X11/extensions
 rm -rf _xlib
 
+# macOS: use gsed for GNU compatibility
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    sed=$(which sed)
+else
+    sed=gsed
+fi
+
 # xcursor
 mkdir -p X11/Xcursor
 # generate header file with version
 xcursor_ver=($(
 	curl 'https://gitlab.freedesktop.org/xorg/lib/libxcursor/-/raw/master/configure.ac' |
-		sed -n 's/.*\[\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\)\].*/\1 \2 \3/p'
+		$sed -n 's/.*\[\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\)\].*/\1 \2 \3/p'
 ))
 curl 'https://gitlab.freedesktop.org/xorg/lib/libxcursor/-/raw/master/include/X11/Xcursor/Xcursor.h.in' |
-	sed \
+	$sed \
 		-e "s/#undef XCURSOR_LIB_MAJOR/#define XCURSOR_LIB_MAJOR ${xcursor_ver[0]}/" \
 		-e "s/#undef XCURSOR_LIB_MINOR/#define XCURSOR_LIB_MINOR ${xcursor_ver[1]}/" \
 		-e "s/#undef XCURSOR_LIB_REVISION/#define XCURSOR_LIB_REVISION ${xcursor_ver[2]}/" \
@@ -79,7 +86,7 @@ git clone https://gitlab.freedesktop.org/xorg/proto/xorgproto.git --depth 1 _xor
 done
 
 # generate template Xpoll.h header
-sed \
+$sed \
 	's/@USE_FDS_BITS@/__fds_bits/' \
 	_xorgproto/include/X11/Xpoll.h.in >X11/Xpoll.h
 
