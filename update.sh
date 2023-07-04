@@ -126,3 +126,7 @@ popd
 mkdir xcb
 mv _xcbproto/c_client_out/*.h xcb
 rm -rf _xcbproto
+
+git clone https://gitlab.freedesktop.org/xorg/lib/libxcb --depth 1 _libxcb
+cp _libxcb/src/*.h xcb/
+rm -rf _libxcb
