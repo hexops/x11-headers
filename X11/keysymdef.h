@@ -414,12 +414,6 @@ SOFTWARE.
 #define XK_dead_belowcomma               0xfe6e
 #define XK_dead_currency                 0xfe6f
 
-/* extra dead elements for German T3 layout */
-#define XK_dead_lowline                  0xfe90
-#define XK_dead_aboveverticalline        0xfe91
-#define XK_dead_belowverticalline        0xfe92
-#define XK_dead_longsolidusoverlay       0xfe93
-
 /* dead vowels for universal syllable entry */
 #define XK_dead_a                        0xfe80
 #define XK_dead_A                        0xfe81
@@ -431,8 +425,10 @@ SOFTWARE.
 #define XK_dead_O                        0xfe87
 #define XK_dead_u                        0xfe88
 #define XK_dead_U                        0xfe89
-#define XK_dead_small_schwa              0xfe8a
-#define XK_dead_capital_schwa            0xfe8b
+#define XK_dead_schwa                    0xfe8a
+#define XK_dead_SCHWA                    0xfe8b
+#define XK_dead_small_schwa              0xfe8a  /* deprecated, remove in 2025 */
+#define XK_dead_capital_schwa            0xfe8b  /* deprecated, remove in 2025 */
 
 #define XK_dead_greek                    0xfe8c
 

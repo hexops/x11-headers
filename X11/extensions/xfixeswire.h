@@ -146,4 +146,9 @@
 /* The server may disconnect this client to shut down */
 #define XFixesClientDisconnectFlagTerminate  (1L << 0)
 
+/*************** Version 6.1 ******************/
+
+/* The server must terminate if this client exits */
+#define XFixesClientDisconnectFlagForceTerminate  (1L << 1)
+
 #endif	/* _XFIXESWIRE_H_ */
