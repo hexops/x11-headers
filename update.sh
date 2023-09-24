@@ -2,19 +2,34 @@
 set -euo pipefail
 set -x
 
-# xkbcommon
-rm -rf xkbcommon || true
-git clone https://github.com/xkbcommon/libxkbcommon.git --depth 1 _xkbcommon
-mv _xkbcommon/include/xkbcommon .
-rm -rf _xkbcommon
+XKBCOMMON_REV=c0065c95a479c7111417a6547d26594a5e31378b
+XLIB_REV=78b37accff1abbe713349d59fdefd963ffa04bbc
+XCURSOR_REV=9c1b50ed98d354488329c99bc8bf77d1c6df657c
+XRANDR_REV=5b96863cf2a34ee9e72ffc4ec6415bc59b6121fc
+XFIXES_REV=c1cab28e27dd1c5a81394965248b57e490ccf2ca
+XRENDER_REV=01e754610df2195536c5b31c1e8df756480599d1
+XINERAMA_REV=51c28095951676a5896437c4c3aa40fb1972bad2
+XI_REV=09f3eb570fe79bfc0c430b6059d7b4acaf371c24
+XSCRNSAVER_REV=9b4e000c6c4ae213a3e52345751d885543f17929
+XEXT_REV=de2ebd62c1eb8fe16c11aceac4a6981bda124cf4
+XORGPROTO_REV=704a75eecdf177a8b18ad7e35813f2f979b0c277
+XCBPROTO_REV=1388374c7149114888a6a5cd6e9bf6ad4b42adf8
+XCB_REV=02a7bbed391859c79864b9aacf040d84f103d38a
 
-# Xlib
-rm -rf X11 || true
-git clone https://gitlab.freedesktop.org/xorg/lib/libx11.git --depth 1 _xlib
-mkdir -p X11/extensions
-mv _xlib/include/X11/*.h X11
-mv _xlib/include/X11/extensions/*.h X11/extensions
-rm -rf _xlib
+# `git clone --depth 1` but at a specific revision
+git_clone_rev() {
+    repo=$1
+    rev=$2
+    dir=$3
+
+    rm -rf "$dir"
+    mkdir "$dir"
+    pushd "$dir"
+    git init -q
+    git fetch "$repo" "$rev" --depth 1
+    git checkout -q FETCH_HEAD
+    popd
+}
 
 # macOS: use gsed for GNU compatibility
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
@@ -23,96 +38,98 @@ else
     sed=gsed
 fi
 
+# xkbcommon
+rm -rf xkbcommon
+git_clone_rev https://github.com/xkbcommon/libxkbcommon.git "$XKBCOMMON_REV" _xkbcommon
+mv _xkbcommon/include/xkbcommon .
+rm -rf _xkbcommon
+
+# Xlib
+rm -rf X11
+mkdir -p X11/extensions
+git_clone_rev https://gitlab.freedesktop.org/xorg/lib/libx11.git "$XLIB_REV" _xlib
+mv _xlib/include/X11/*.h X11
+mv _xlib/include/X11/extensions/*.h X11/extensions
+# generate config header
+$sed \
+    -e "s/#undef XTHREADS/#define XTHREADS 1/" \
+    -e "s/#undef XUSE_MTSAFE_API/#define XUSE_MTSAFE_API 1/" \
+    _xlib/include/X11/XlibConf.h.in > X11/XlibConf.h
+rm -rf _xlib
+
 # xcursor
 mkdir -p X11/Xcursor
 # generate header file with version
 xcursor_ver=($(
-	curl 'https://gitlab.freedesktop.org/xorg/lib/libxcursor/-/raw/master/configure.ac' |
-		$sed -n 's/.*\[\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\)\].*/\1 \2 \3/p'
+    curl -L "https://gitlab.freedesktop.org/xorg/lib/libxcursor/-/raw/$XCURSOR_REV/configure.ac" |
+        $sed -n 's/.*\[\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\)\].*/\1 \2 \3/p'
 ))
-curl 'https://gitlab.freedesktop.org/xorg/lib/libxcursor/-/raw/master/include/X11/Xcursor/Xcursor.h.in' |
-	$sed \
-		-e "s/#undef XCURSOR_LIB_MAJOR/#define XCURSOR_LIB_MAJOR ${xcursor_ver[0]}/" \
-		-e "s/#undef XCURSOR_LIB_MINOR/#define XCURSOR_LIB_MINOR ${xcursor_ver[1]}/" \
-		-e "s/#undef XCURSOR_LIB_REVISION/#define XCURSOR_LIB_REVISION ${xcursor_ver[2]}/" \
-		>X11/Xcursor/Xcursor.h
+curl -L "https://gitlab.freedesktop.org/xorg/lib/libxcursor/-/raw/$XCURSOR_REV/include/X11/Xcursor/Xcursor.h.in" |
+    $sed \
+        -e "s/#undef XCURSOR_LIB_MAJOR/#define XCURSOR_LIB_MAJOR ${xcursor_ver[0]}/" \
+        -e "s/#undef XCURSOR_LIB_MINOR/#define XCURSOR_LIB_MINOR ${xcursor_ver[1]}/" \
+        -e "s/#undef XCURSOR_LIB_REVISION/#define XCURSOR_LIB_REVISION ${xcursor_ver[2]}/" \
+        > X11/Xcursor/Xcursor.h
 
-# xrandr
-curl \
-	https://gitlab.freedesktop.org/xorg/lib/libxrandr/-/raw/master/include/X11/extensions/Xrandr.h \
-	-o X11/extensions/Xrandr.h
-
-# xfixes
-curl \
-	https://gitlab.freedesktop.org/xorg/lib/libxfixes/-/raw/master/include/X11/extensions/Xfixes.h \
-	-o X11/extensions/Xfixes.h
-
-# xrender
-curl \
-	https://gitlab.freedesktop.org/xorg/lib/libxrender/-/raw/master/include/X11/extensions/Xrender.h \
-	-o X11/extensions/Xrender.h
-
-# xinerama
-curl \
-	https://gitlab.freedesktop.org/xorg/lib/libxinerama/-/raw/master/include/X11/extensions/Xinerama.h \
-	-o X11/extensions/Xinerama.h
-curl \
-	https://gitlab.freedesktop.org/xorg/lib/libxinerama/-/raw/master/include/X11/extensions/panoramiXext.h \
-	-o X11/extensions/panoramiXext.h
-
-# xi
-curl \
-	https://gitlab.freedesktop.org/xorg/lib/libxi/-/raw/master/include/X11/extensions/XInput.h \
-	-o X11/extensions/XInput.h
-curl \
-	https://gitlab.freedesktop.org/xorg/lib/libxi/-/raw/master/include/X11/extensions/XInput2.h \
-	-o X11/extensions/XInput2.h
+# xrandr, xfixes, xrender, xinerama, xi, xscrnsaver
+curl -LZ \
+    -O "https://gitlab.freedesktop.org/xorg/lib/libxrandr/-/raw/$XRANDR_REV/include/X11/extensions/Xrandr.h" \
+    -O "https://gitlab.freedesktop.org/xorg/lib/libxfixes/-/raw/$XFIXES_REV/include/X11/extensions/Xfixes.h" \
+    -O "https://gitlab.freedesktop.org/xorg/lib/libxrender/-/raw/$XRENDER_REV/include/X11/extensions/Xrender.h" \
+    -O "https://gitlab.freedesktop.org/xorg/lib/libxinerama/-/raw/$XINERAMA_REV/include/X11/extensions/Xinerama.h" \
+    -O "https://gitlab.freedesktop.org/xorg/lib/libxinerama/-/raw/$XINERAMA_REV/include/X11/extensions/panoramiXext.h" \
+    -O "https://gitlab.freedesktop.org/xorg/lib/libxi/-/raw/$XI_REV/include/X11/extensions/XInput.h" \
+    -O "https://gitlab.freedesktop.org/xorg/lib/libxi/-/raw/$XI_REV/include/X11/extensions/XInput2.h" \
+    -O "https://gitlab.freedesktop.org/xorg/lib/libxscrnsaver/-/raw/$XSCRNSAVER_REV/include/X11/extensions/scrnsaver.h" \
+    --output-dir X11/extensions
 
 # xext
-git clone https://gitlab.freedesktop.org/xorg/lib/libxext.git --depth 1 _xext
+git_clone_rev https://gitlab.freedesktop.org/xorg/lib/libxext.git "$XEXT_REV" _xext
 mv _xext/include/X11/extensions/*.h X11/extensions
 rm -rf _xext
 
 # xorgproto
-git clone https://gitlab.freedesktop.org/xorg/proto/xorgproto.git --depth 1 _xorgproto
+git_clone_rev https://gitlab.freedesktop.org/xorg/proto/xorgproto.git "$XORGPROTO_REV" _xorgproto
 {
-	cd _xorgproto/include/X11
-	find . -name '*.h'
+    cd _xorgproto/include/X11
+    find . -name '*.h'
 } | while read -r file; do
-	source=_xorgproto/include/X11/$file
-	target=X11/$file
-	mkdir -p "$(dirname "$target")"
-	mv "$source" "$target"
+    source=_xorgproto/include/X11/$file
+    target=X11/$file
+    mkdir -p "$(dirname "$target")"
+    mv "$source" "$target"
 done
 
 # generate template Xpoll.h header
 $sed \
-	's/@USE_FDS_BITS@/__fds_bits/' \
-	_xorgproto/include/X11/Xpoll.h.in >X11/Xpoll.h
+    's/@USE_FDS_BITS@/__fds_bits/' \
+    _xorgproto/include/X11/Xpoll.h.in > X11/Xpoll.h
 
 # GLX headers
 rm -rf GL
 mkdir GL
 {
-	cd _xorgproto/include/GL
-	find . -name '*.h'
+    cd _xorgproto/include/GL
+    find . -name '*.h'
 } | while read -r file; do
-	source=_xorgproto/include/GL/$file
-	target=GL/$file
-	mkdir -p "$(dirname "$target")"
-	mv "$source" "$target"
+    source=_xorgproto/include/GL/$file
+    target=GL/$file
+    mkdir -p "$(dirname "$target")"
+    mv "$source" "$target"
 done
 
 rm -rf _xorgproto
 
-# libxcb (this one's bad!)
-rm -rf xcb || true
-git clone https://gitlab.freedesktop.org/xorg/proto/xcbproto.git --depth 1 _xcbproto
+# xcb (this one's bad!)
+rm -rf xcb
+mkdir xcb
+git_clone_rev https://gitlab.freedesktop.org/xorg/lib/libxcb.git "$XCB_REV" _xcb
+git_clone_rev https://gitlab.freedesktop.org/xorg/proto/xcbproto.git "$XCBPROTO_REV" _xcbproto
+mv _xcb/src/c_client.py _xcbproto
 pushd _xcbproto
 ./autogen.sh
 make
-make DESTDIR="$(pwd)/out" install
-curl 'https://gitlab.freedesktop.org/xorg/lib/libxcb/-/raw/master/src/c_client.py' -o c_client.py
+make DESTDIR="$PWD/out" install
 mkdir c_client_out
 pushd c_client_out
 export PYTHONPATH="../out/usr/local/lib/python3.10/site-packages"
@@ -123,10 +140,6 @@ for file in ../src/*.xml; do
 done
 popd
 popd
-mkdir xcb
+mv _xcb/src/*.h xcb
 mv _xcbproto/c_client_out/*.h xcb
-rm -rf _xcbproto
-
-git clone https://gitlab.freedesktop.org/xorg/lib/libxcb --depth 1 _libxcb
-cp _libxcb/src/*.h xcb/
-rm -rf _libxcb
+rm -rf _xcb _xcbproto
