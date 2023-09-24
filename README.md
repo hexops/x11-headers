@@ -11,6 +11,7 @@ This is a Zig package which provides various X11 headers needed to develop and c
 * xrender
 * xinerama
 * xi
+* xscrnsaver
 * xext
 * xorgproto
 * GLX
