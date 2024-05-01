@@ -12,10 +12,10 @@ pub fn build(b: *std.Build) void {
     });
 
     // contains only GLX headers!
-    lib.installHeadersDirectory("GL", "GL");
-    lib.installHeadersDirectory("X11", "X11");
-    lib.installHeadersDirectory("xcb", "xcb");
-    lib.installHeadersDirectory("xkbcommon", "xkbcommon");
+    lib.installHeadersDirectory(.{ .path = "GL" }, "GL", .{});
+    lib.installHeadersDirectory(.{ .path = "X11" }, "X11", .{});
+    lib.installHeadersDirectory(.{ .path = "xcb" }, "xcb", .{});
+    lib.installHeadersDirectory(.{ .path = "xkbcommon" }, "xkbcommon", .{});
 
     b.installArtifact(lib);
 }
